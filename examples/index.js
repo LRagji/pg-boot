@@ -1,5 +1,5 @@
 const bootType = require('../build/src/index');
-const pgp = require('pg-promise')({schema: 'Boot'});
+const pgp = require('pg-promise')({ schema: 'Boot' });
 const defaultConectionString = 'postgres://postgres:@localhost:5432/QUEUE';
 const writeConfigParams = {
   connectionString: defaultConectionString,
@@ -15,7 +15,7 @@ async function UpgradeHandler(transaction, dbVersion) {
       await transaction.none('CREATE TABLE "V1" ();');
       break;
     case 0: //Version zero was already present
-      await transaction.none('ALTER TABLE V1 RENAME "V2";');
+      await transaction.none('ALTER TABLE "V1" RENAME TO "V2";');
       break;
   }
 }
@@ -23,4 +23,13 @@ async function UpgradeHandler(transaction, dbVersion) {
 instance
   .checkVersion(pgWriter, 0, UpgradeHandler)
   .then(console.log)
-  .catch(console.error);
+  .catch(console.error)
+  .finally(() => {
+    //Next Upgrade version  1
+    instance
+      .checkVersion(pgWriter, 1, UpgradeHandler)
+      .then(console.log)
+      .catch(console.error);
+
+  })
+

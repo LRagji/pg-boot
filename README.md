@@ -2,10 +2,14 @@
 
 [![Code Style: Google](https://img.shields.io/badge/code%20style-google-blueviolet.svg)](https://github.com/google/gts)
 
-This package is a implementation for a common task like applying DB changes when application boots up by versioning.
+This package is a implementation for a common task like applying DB changes when application boots up by versioning the changes.
+1. Allows you to apply programatic changes.
+2. Version is a simple integer.
+3. All changes are applied in transaction so if any one change fails everything is rolled back.
+4. Can be used with multiple instance of microservices as all changes are applied under advisory lock.
 
 
-<!--## Getting Started
+## Getting Started
 
 1. Install using `npm i pg-que`
 2. Require in your project. `const QType = require('pg-que');`
@@ -15,62 +19,48 @@ This package is a implementation for a common task like applying DB changes when
 
  ## Examples/Code snippets
 
-A complete example can be found at [here](https://raw.githubusercontent.com/LRagji/pg-queue/master/examples/default.js)
+A complete example can be found at [here](https://raw.githubusercontent.com/LRagji/pg-boot/master/examples/index.js)
 
 1. **Initialize**
 ```javascript
-const QType = require('pg-que');
-const pgp = require('pg-promise')();
-pgp.pg.types.setTypeParser(20, BigInt); // This is for serialization bug of BigInts as strings.
-pgp.pg.types.setTypeParser(1114, str => str); // UTC Timestamp Formatting Bug, 1114 is OID for timestamp in Postgres.
-const defaultConectionString = "postgres://postgres:@localhost:5432/pg-queue";
-const readConfigParams = {
-    connectionString: defaultConectionString,
-    application_name: "Queue-Reader",
-    max: 4 //4 readers
-};
+const bootType = require('pg-boot');
+const pgp = require('pg-promise')({ schema: 'Boot' });
+const defaultConectionString = 'postgres://postgres:@localhost:5432/QUEUE';
 const writeConfigParams = {
-    connectionString: defaultConectionString,
-    application_name: "Queue-Writer",
-    max: 2 //2 Writer
+  connectionString: defaultConectionString,
+  application_name: 'Example1-Queue-Writer',
+  max: 2, //2 Writer
 };
-const Qname = "Laukik";
-const Q = new QType(Qname, pgp(readConfigParams), pgp(writeConfigParams));
+const pgWriter = pgp(writeConfigParams);
+const instance = new bootType.PgBoot('ProductName');
 ```
 
-2. **Enqueue**
+2. **Upgrade Handller**
 ```javascript
-await Q.enque([1,2,3,4,5]);
+async function UpgradeHandler(transaction, dbVersion) {
+  switch (dbVersion) {
+    case -1: //Green field(Nothing is present in DB) first time install
+      await transaction.none('CREATE TABLE "V1" ();');
+      break;
+    case 0: //Version zero was already present
+      await transaction.none('ALTER TABLE "V1" RENAME TO "V2";');
+      break;
+  }
+};
+
+instance
+  .checkVersion(pgWriter, 0, UpgradeHandler)
+  .then(console.log)
+  .catch(console.error)
+  .finally(() => {
+    //Simulate Next version upgrade (1)
+    instance
+      .checkVersion(pgWriter, 1, UpgradeHandler)
+      .then(console.log)
+      .catch(console.error);
+
+  });
 ```
-3. **Dequeue**
-```javascript
-const payload = await Q.tryDeque();
-```
-4. **Acknowledge**
-```javascript
-const payload = await Q.tryDeque();
-const acked = await Q.tryAcknowledge(payload.AckToken);
-console.log(acked);
-```
-
-## Theory
-
-### *Why build one when there are tons of options avaialble for distributed queue?*
-Yes, there are N options available for queues, eg: RabbitMQ, Redis Streams, Kafka etc, but they all are different systems, which means application has to maintain sync between them and cater to failure modes for system being different. There was a need for one stop solution for all these common scenarios of applications and thus this package came into existence.
-
-### *Can this be adopted to different languages?*
-Yes, it uses concepts which are PG based and not language specific so yes a port is possible.
-
-### *What core concepts have been used?*
-1. **SERIALIZABLE Transactions**: This is a transaction mode in PG, used to make sure only one subscriber get into the que at a time.
-2. **Cursors**: Each subscriber maintains a cursor of what was read by it, it will not increment until ack has been received for the same.
-3. **Acknowledgements**: Each message once read can be marked as completed and done with acks, this helps to confirm consumptions on the subscriber side and for cursor to move ahead.
-4. **Timeouts**: if a subscriber acquires a message and then abprutly dies. The same message can be picked up by other subscriber after a certain timeout.
-
-### *What different modes are supported?*
-Mode 1: Simple Que with multiple publishers and multiple subscribers and messages getting sequentially executed between them, as shown below , more modes may land in future.
-
-![Mode-1](./docs/Mode1.png) -->
 
 ## Built with
 

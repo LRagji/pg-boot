@@ -7,20 +7,37 @@ export class PgBoot {
 
   constructor(name: string) {
     this.version = -1;
-    this.name = name;
+    this.name = crypto
+      .createHash('md5')
+      .update(name)
+      .digest('hex');
     this.checkVersion = this.checkVersion.bind(this);
   }
 
-  static dynamicPreparedStatement(name: string,sql: string,dynamicValues: any): pg.PreparedStatement {
+  static dynamicPreparedStatement(
+    name: string,
+    sql: string,
+    dynamicValues: any
+  ): pg.PreparedStatement {
     const valueArray = Object.keys(dynamicValues).map(k => dynamicValues[k]);
     const options: pg.IPreparedStatement = {
-      name: crypto.createHash('md5').update(name + '.' + valueArray.join('.')).digest('hex'),
-      text: pg.as.format(sql, dynamicValues)
+      name: crypto
+        .createHash('md5')
+        .update(name + '.' + valueArray.join('.'))
+        .digest('hex'),
+      text: pg.as.format(sql, dynamicValues),
     };
     return new pg.PreparedStatement(options);
   }
 
-  async checkVersion(pgWriterConnection: pg.IDatabase<any>,expectedSchemaVersion: number,reconcileCallback: (transaction: pg.ITask<any>,dbVersion: number) => Promise<void>): Promise<boolean> {
+  async checkVersion(
+    pgWriterConnection: pg.IDatabase<any>,
+    expectedSchemaVersion: number,
+    reconcileCallback: (
+      transaction: pg.ITask<any>,
+      dbVersion: number
+    ) => Promise<void>
+  ): Promise<boolean> {
     if (expectedSchemaVersion === this.version) return Promise.resolve(true);
     const lockStatement = new pg.PreparedStatement({
       name: 'TransactionLock',
@@ -30,12 +47,12 @@ export class PgBoot {
     const checkSchemaVersion = PgBoot.dynamicPreparedStatement(
       'CheckSchemaVersion',
       'SELECT $[name:name]() AS "version";',
-      {name: this.name}
+      { name: this.name }
     );
     const updateCreateSchemaVersion = PgBoot.dynamicPreparedStatement(
       'updateCreateSchemaVersion',
       'CREATE OR REPLACE FUNCTION $[name:name]() RETURNS integer LANGUAGE SQL AS $$ SELECT $[version] $$;',
-      {name: this.name, version: expectedSchemaVersion}
+      { name: this.name, version: expectedSchemaVersion }
     );
     const versionFunctionExists = new pg.PreparedStatement({
       name: 'VersionFunctionExists',
@@ -49,7 +66,10 @@ export class PgBoot {
     return pgWriterConnection.tx(async transaction => {
       await transaction.one(lockStatement, [this.name]);
 
-      const versionExists = await transaction.one(versionFunctionExists, [this.name,pgWriterConnection.$config.options.schema]);
+      const versionExists = await transaction.one(versionFunctionExists, [
+        this.name,
+        pgWriterConnection.$config.options.schema,
+      ]);
       if (versionExists.exists === true) {
         const existingVersion = await transaction.one(checkSchemaVersion);
         this.version = existingVersion.version;
