@@ -11,11 +11,8 @@ This package is a implementation for a common task like applying DB changes when
 
 ## Getting Started
 
-1. Install using `npm i pg-que`
-2. Require in your project. `const QType = require('pg-que');`
-3. Run postgres as local docker if required. `docker run --name pg-12.4 -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=pg-queue -p 5432:5432 -d postgres:12.4-alpine`
-4. Instantiate with a postgres readers and writers connection details. 
-5. All done, Start using it!!.
+1. Install using `npm i pg-boot`
+2. All done, Start using it!!.
 
  ## Examples/Code snippets
 
