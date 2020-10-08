@@ -1,6 +1,6 @@
 {
   "name": "pg-boot",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Package for applying DB schema by versioning",
   "main": "build/src/index.js",
   "scripts": {
