@@ -14,11 +14,8 @@ export class PgBoot {
   static dynamicPreparedStatement(name: string,sql: string,dynamicValues: any): pg.PreparedStatement {
     const valueArray = Object.keys(dynamicValues).map(k => dynamicValues[k]);
     const options: pg.IPreparedStatement = {
-      name: crypto
-        .createHash('md5')
-        .update(name + '.' + valueArray.join('.'))
-        .digest('hex'),
-      text: pg.as.format(sql, dynamicValues),
+      name: crypto.createHash('md5').update(name + '.' + valueArray.join('.')).digest('hex'),
+      text: pg.as.format(sql, dynamicValues)
     };
     return new pg.PreparedStatement(options);
   }
