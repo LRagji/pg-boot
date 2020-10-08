@@ -2,7 +2,7 @@
   "name": "pg-boot",
   "version": "0.0.1",
   "description": "Package for applying DB schema by versioning",
-  "main": "index.js",
+  "main": "build/src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "gts lint",
