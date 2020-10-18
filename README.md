@@ -70,8 +70,14 @@ instance
 2. Raise a Pull Request.
 
 ## Current Version:
-0.0.2[Beta]
+0.0.3[Beta]
 
 ## License
 
 This project is contrubution to public domain and completely free for use, view [LICENSE.md](/license.md) file for details.
+
+## Changelog
+
+v0.0.3 :
+1. Even if the same version exists reconcilecallback is invoked once per instance.
+

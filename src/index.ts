@@ -74,6 +74,7 @@ export class PgBoot {
         const existingVersion = await transaction.one(checkSchemaVersion);
         this.version = existingVersion.version;
         if (existingVersion.version === expectedSchemaVersion) {
+          await reconcileCallback(transaction, this.version);
           return Promise.resolve(true);
         }
       }
